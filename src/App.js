@@ -22,72 +22,144 @@ function App() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [maxStreak, setMaxStreak] = useState(0);
   
-  // Efecto para cargar datos guardados
+  // Efecto para cargar datos guardados - Se ejecuta solo una vez al inicio
   useEffect(() => {
-    const savedData = localStorage.getItem('nofapData');
-    if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      setStreak(parsedData.streak);
-      setStartDate(parsedData.startDate ? new Date(parsedData.startDate) : null);
-      setRelapseHistory(parsedData.relapseHistory || []);
-      setMaxStreak(parsedData.maxStreak || 0);
+    console.log("Cargando datos del localStorage");
+    try {
+      const savedData = localStorage.getItem('nofapData');
+      console.log("Datos recuperados:", savedData);
       
-      // Determinar el nivel basado en la racha actual
-      const currentLevel = LEVELS.reduce((prev, curr) => {
-        return parsedData.streak >= curr.days ? curr : prev;
-      }, LEVELS[0]);
-      setLevel(currentLevel);
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        
+        // Verificamos que los datos sean válidos antes de usarlos
+        if (parsedData && typeof parsedData === 'object') {
+          console.log("Datos parseados correctamente:", parsedData);
+          
+          // Establecemos cada estado individualmente para evitar problemas
+          if (typeof parsedData.streak === 'number') {
+            setStreak(parsedData.streak);
+          }
+          
+          if (parsedData.startDate) {
+            setStartDate(new Date(parsedData.startDate));
+          }
+          
+          if (Array.isArray(parsedData.relapseHistory)) {
+            setRelapseHistory(parsedData.relapseHistory);
+          }
+          
+          if (typeof parsedData.maxStreak === 'number') {
+            setMaxStreak(parsedData.maxStreak);
+          }
+          
+          // Determinar el nivel basado en la racha actual
+          if (typeof parsedData.streak === 'number') {
+            const currentLevel = LEVELS.reduce((prev, curr) => {
+              return parsedData.streak >= curr.days ? curr : prev;
+            }, LEVELS[0]);
+            setLevel(currentLevel);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error al cargar datos:", error);
     }
   }, []);
   
   // Efecto para guardar datos cuando cambien
   useEffect(() => {
-    const dataToSave = {
-      streak,
-      startDate,
-      relapseHistory,
-      maxStreak
-    };
-    localStorage.setItem('nofapData', JSON.stringify(dataToSave));
-    
-    // Actualizar nivel basado en la racha actual
-    const currentLevel = LEVELS.reduce((prev, curr) => {
-      return streak >= curr.days ? curr : prev;
-    }, LEVELS[0]);
-    setLevel(currentLevel);
+    // Solo guardamos si tenemos una fecha de inicio
+    if (startDate) {
+      console.log("Guardando datos en localStorage");
+      try {
+        const dataToSave = {
+          streak,
+          startDate: startDate.toISOString(), // Guardamos como string ISO para evitar problemas de serialización
+          relapseHistory,
+          maxStreak
+        };
+        
+        console.log("Datos a guardar:", dataToSave);
+        localStorage.setItem('nofapData', JSON.stringify(dataToSave));
+        
+        // Actualizar nivel basado en la racha actual
+        const currentLevel = LEVELS.reduce((prev, curr) => {
+          return streak >= curr.days ? curr : prev;
+        }, LEVELS[0]);
+        setLevel(currentLevel);
+      } catch (error) {
+        console.error("Error al guardar datos:", error);
+      }
+    }
   }, [streak, startDate, relapseHistory, maxStreak]);
   
   // Efecto para incrementar la racha cada día a medianoche
   useEffect(() => {
     const checkDate = () => {
       if (startDate) {
+        console.log("Verificando días transcurridos desde:", startDate);
         const today = new Date();
-        const daysPassed = Math.floor((today - new Date(startDate)) / (1000 * 60 * 60 * 24));
+        // Aseguramos que ambas fechas son objetos Date para comparar correctamente
+        const startDateObj = startDate instanceof Date ? startDate : new Date(startDate);
+        const daysPassed = Math.floor((today - startDateObj) / (1000 * 60 * 60 * 24));
+        
+        console.log("Días transcurridos calculados:", daysPassed);
+        console.log("Racha actual:", streak);
+        
         if (daysPassed > streak) {
+          console.log("Actualizando racha a:", daysPassed);
           setStreak(daysPassed);
         }
       }
     };
     
-    // Verificar al cargar y programar la próxima verificación para medianoche
+    // Verificar inmediatamente al cargar
+    console.log("Ejecutando verificación inicial");
     checkDate();
     
+    // Programar verificación para medianoche
     const now = new Date();
     const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0); // Establecer a medianoche exacta
     const timeUntilMidnight = tomorrow - now;
     
+    console.log("Tiempo hasta medianoche (ms):", timeUntilMidnight);
+    console.log("Programando próxima verificación en:", new Date(now.getTime() + timeUntilMidnight));
+    
     const timer = setTimeout(() => {
+      console.log("Ejecutando verificación de medianoche");
       checkDate();
+      
       // Reiniciar el temporizador diario
-      const dailyTimer = setInterval(checkDate, 24 * 60 * 60 * 1000);
+      console.log("Configurando temporizador diario");
+      const dailyTimer = setInterval(() => {
+        console.log("Verificación diaria automática");
+        checkDate();
+      }, 24 * 60 * 60 * 1000);
+      
       return () => clearInterval(dailyTimer);
     }, timeUntilMidnight);
     
-    return () => clearTimeout(timer);
+    // Además, verificar cada vez que el usuario vuelva a la pestaña
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Usuario volvió a la pestaña - verificando racha");
+        checkDate();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [startDate, streak]);
   
   // Función para iniciar o reiniciar la racha
   const startStreak = () => {
+    console.log("Iniciando nueva racha");
     const now = new Date();
     setStartDate(now);
     setStreak(0);
@@ -95,6 +167,7 @@ function App() {
   
   // Función para registrar una recaída
   const registerRelapse = () => {
+    console.log("Registrando recaída");
     const today = new Date();
     
     // Actualizar historial de recaídas
@@ -102,6 +175,7 @@ function App() {
     
     // Guardar racha máxima si superó la anterior
     if (streak > maxStreak) {
+      console.log("Nueva racha máxima:", streak);
       setMaxStreak(streak);
     }
     
@@ -134,6 +208,15 @@ function App() {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('es-ES', options);
   };
+  
+  // Depurar estado actual
+  console.log("Estado actual:", {
+    streak,
+    startDate: startDate ? startDate.toString() : null,
+    level: level.name,
+    relapseHistory: relapseHistory.length,
+    maxStreak
+  });
   
   return (
     <div className="container">
