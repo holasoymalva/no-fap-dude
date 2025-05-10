@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/no-fap-dude/static/css/main.175ec97c.css",
+    "main.js": "/no-fap-dude/static/js/main.a3af9ace.js",
+    "static/js/453.1e065320.chunk.js": "/no-fap-dude/static/js/453.1e065320.chunk.js",
+    "index.html": "/no-fap-dude/index.html",
+    "main.175ec97c.css.map": "/no-fap-dude/static/css/main.175ec97c.css.map",
+    "main.a3af9ace.js.map": "/no-fap-dude/static/js/main.a3af9ace.js.map",
+    "453.1e065320.chunk.js.map": "/no-fap-dude/static/js/453.1e065320.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.175ec97c.css",
+    "static/js/main.a3af9ace.js"
+  ]
+}
