@@ -1,0 +1,293 @@
+/* Estilos generales */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #111827;
+  color: white;
+}
+
+/* Contenedor principal */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Encabezado */
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding-top: 32px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #9ca3af;
+}
+
+/* Tarjetas */
+.card {
+  background-color: #1f2937;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Contador de días */
+.day-counter {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.counter {
+  font-size: 48px;
+  font-weight: bold;
+}
+
+.counter-label {
+  font-size: 18px;
+  margin-left: 8px;
+}
+
+.start-date {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* Niveles */
+.level-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.level-title {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.level-name {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.record {
+  color: #9ca3af;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* Progreso al siguiente nivel */
+.progress-section {
+  margin-bottom: 24px;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.progress-bar-container {
+  width: 100%;
+  background-color: #374151;
+  border-radius: 9999px;
+  height: 10px;
+}
+
+.progress-bar {
+  background-color: #2563eb;
+  height: 10px;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Botones */
+.button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.button {
+  flex: 1;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  color: white;
+  transition: background-color 0.2s;
+}
+
+.button-blue {
+  background-color: #2563eb;
+}
+
+.button-blue:hover {
+  background-color: #1d4ed8;
+}
+
+.button-red {
+  background-color: #dc2626;
+}
+
+.button-red:hover {
+  background-color: #b91c1c;
+}
+
+.button-green {
+  background-color: #16a34a;
+}
+
+.button-green:hover {
+  background-color: #15803d;
+}
+
+.button-icon {
+  margin-right: 8px;
+}
+
+/* Lista de niveles */
+.levels-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.level-item {
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.level-active {
+  background-color: #374151;
+}
+
+.level-inactive {
+  background-color: #1f2937;
+  opacity: 0.5;
+}
+
+.level-icon-name {
+  display: flex;
+  align-items: center;
+}
+
+.level-icon {
+  margin-right: 12px;
+}
+
+.level-days {
+  color: #9ca3af;
+}
+
+/* Colores de nivel */
+.color-red { color: #ef4444; }
+.color-orange { color: #f97316; }
+.color-yellow { color: #eab308; }
+.color-green { color: #22c55e; }
+.color-blue { color: #3b82f6; }
+.color-indigo { color: #6366f1; }
+.color-purple { color: #a855f7; }
+.color-pink { color: #ec4899; }
+
+/* Modal para el calendario */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 50;
+}
+
+.modal {
+  background-color: #1f2937;
+  border-radius: 8px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content {
+  padding: 24px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.close-button:hover {
+  color: white;
+}
+
+.empty-history {
+  text-align: center;
+  padding: 32px 0;
+  color: #9ca3af;
+}
+
+.empty-icon {
+  margin: 0 auto 16px auto;
+  display: block;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  background-color: #374151;
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.streak-days {
+  font-size: 14px;
+  color: #9ca3af;
+}
