@@ -21,6 +21,8 @@ function App() {
   const [relapseHistory, setRelapseHistory] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [maxStreak, setMaxStreak] = useState(0);
+  const [showStreakCalendar, setShowStreakCalendar] = useState(false);
+  const [successDays, setSuccessDays] = useState([]); // Días exitosos (sin porno)
   
   // Efecto para cargar datos guardados - Se ejecuta solo una vez al inicio
   useEffect(() => {
@@ -53,6 +55,11 @@ function App() {
             setMaxStreak(parsedData.maxStreak);
           }
           
+          // Cargar los días exitosos si existen
+          if (Array.isArray(parsedData.successDays)) {
+            setSuccessDays(parsedData.successDays);
+          }
+          
           // Determinar el nivel basado en la racha actual
           if (typeof parsedData.streak === 'number') {
             const currentLevel = LEVELS.reduce((prev, curr) => {
@@ -69,15 +76,16 @@ function App() {
   
   // Efecto para guardar datos cuando cambien
   useEffect(() => {
-    // Solo guardamos si tenemos una fecha de inicio
-    if (startDate) {
+    // Solo guardamos si tenemos una fecha de inicio o historial
+    if (startDate || successDays.length > 0) {
       console.log("Guardando datos en localStorage");
       try {
         const dataToSave = {
           streak,
-          startDate: startDate.toISOString(), // Guardamos como string ISO para evitar problemas de serialización
+          startDate: startDate ? startDate.toISOString() : null,
           relapseHistory,
-          maxStreak
+          maxStreak,
+          successDays
         };
         
         console.log("Datos a guardar:", dataToSave);
@@ -92,7 +100,43 @@ function App() {
         console.error("Error al guardar datos:", error);
       }
     }
-  }, [streak, startDate, relapseHistory, maxStreak]);
+  }, [streak, startDate, relapseHistory, maxStreak, successDays]);
+  
+  // Efecto para registrar días exitosos automáticamente
+  useEffect(() => {
+    if (startDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const startDateObj = new Date(startDate);
+      startDateObj.setHours(0, 0, 0, 0);
+      
+      // Generar lista de días desde el inicio hasta hoy
+      const tempSuccessDays = [...successDays];
+      const existingDays = new Set(successDays.map(d => new Date(d).toDateString()));
+      
+      for (let d = new Date(startDateObj); d <= today; d.setDate(d.getDate() + 1)) {
+        const dateStr = new Date(d).toDateString();
+        const isoStr = new Date(d).toISOString();
+        
+        // Solo agregar si no es un día de recaída y no está ya registrado
+        const isRelapse = relapseHistory.some(relapse => {
+          const relapseDate = new Date(relapse);
+          relapseDate.setHours(0, 0, 0, 0);
+          return relapseDate.toDateString() === dateStr;
+        });
+        
+        if (!isRelapse && !existingDays.has(dateStr)) {
+          tempSuccessDays.push(isoStr);
+          existingDays.add(dateStr);
+        }
+      }
+      
+      // Actualizar solo si hay cambios
+      if (tempSuccessDays.length !== successDays.length) {
+        setSuccessDays(tempSuccessDays);
+      }
+    }
+  }, [startDate, streak, relapseHistory, successDays]);
   
   // Efecto para incrementar la racha cada día a medianoche
   useEffect(() => {
@@ -100,16 +144,25 @@ function App() {
       if (startDate) {
         console.log("Verificando días transcurridos desde:", startDate);
         const today = new Date();
-        // Aseguramos que ambas fechas son objetos Date para comparar correctamente
         const startDateObj = startDate instanceof Date ? startDate : new Date(startDate);
-        const daysPassed = Math.floor((today - startDateObj) / (1000 * 60 * 60 * 24));
         
-        console.log("Días transcurridos calculados:", daysPassed);
-        console.log("Racha actual:", streak);
+        // Verificar si hay una recaída el día actual
+        const todayDateStr = today.toDateString();
+        const hasRelapseToday = relapseHistory.some(date => 
+          new Date(date).toDateString() === todayDateStr
+        );
         
-        if (daysPassed > streak) {
-          console.log("Actualizando racha a:", daysPassed);
-          setStreak(daysPassed);
+        // Si hay una recaída hoy, no actualizar la racha
+        if (!hasRelapseToday) {
+          const daysPassed = Math.floor((today - startDateObj) / (1000 * 60 * 60 * 24));
+          
+          console.log("Días transcurridos calculados:", daysPassed);
+          console.log("Racha actual:", streak);
+          
+          if (daysPassed > streak) {
+            console.log("Actualizando racha a:", daysPassed);
+            setStreak(daysPassed);
+          }
         }
       }
     };
@@ -121,7 +174,7 @@ function App() {
     // Programar verificación para medianoche
     const now = new Date();
     const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0); // Establecer a medianoche exacta
+    tomorrow.setHours(0, 0, 0, 0);
     const timeUntilMidnight = tomorrow - now;
     
     console.log("Tiempo hasta medianoche (ms):", timeUntilMidnight);
@@ -155,23 +208,33 @@ function App() {
       clearTimeout(timer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [startDate, streak]);
+  }, [startDate, streak, relapseHistory]);
   
   // Función para iniciar o reiniciar la racha
   const startStreak = () => {
     console.log("Iniciando nueva racha");
     const now = new Date();
+    now.setHours(0, 0, 0, 0);
     setStartDate(now);
     setStreak(0);
+    setSuccessDays([]);
   };
   
   // Función para registrar una recaída
   const registerRelapse = () => {
     console.log("Registrando recaída");
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     // Actualizar historial de recaídas
     setRelapseHistory(prev => [...prev, today.toISOString()]);
+    
+    // Eliminar el día de hoy de los días exitosos
+    setSuccessDays(prev => prev.filter(day => {
+      const dayDate = new Date(day);
+      dayDate.setHours(0, 0, 0, 0);
+      return dayDate.toDateString() !== today.toDateString();
+    }));
     
     // Guardar racha máxima si superó la anterior
     if (streak > maxStreak) {
@@ -188,7 +251,7 @@ function App() {
   // Calcular el progreso hasta el siguiente nivel
   const calculateNextLevel = () => {
     const nextLevelIndex = LEVELS.findIndex(l => l.days > streak);
-    if (nextLevelIndex === -1) return null; // Ya en nivel máximo
+    if (nextLevelIndex === -1) return null;
     
     const nextLevel = LEVELS[nextLevelIndex];
     const daysLeft = nextLevel.days - streak;
@@ -209,13 +272,85 @@ function App() {
     return new Date(dateString).toLocaleDateString('es-ES', options);
   };
   
+  // Función para generar el calendario de rachas
+  const generateCalendarData = () => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Obtener el primer día del mes
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    
+    const calendarData = [];
+    
+    // Días vacíos al inicio del mes para alinear con el día de la semana
+    const startingDayOfWeek = firstDayOfMonth.getDay();
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      calendarData.push({ day: null, status: null });
+    }
+    
+    // Generar cada día del mes
+    for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+      const currentDate = new Date(currentYear, currentMonth, day);
+      currentDate.setHours(0, 0, 0, 0);
+      const dateStr = currentDate.toDateString();
+      
+      let status = null;
+      
+      // Verificar si hay una recaída en este día
+      const relapseDates = relapseHistory.map(date => {
+        const relapseDate = new Date(date);
+        relapseDate.setHours(0, 0, 0, 0);
+        return relapseDate.toDateString();
+      });
+      
+      if (relapseDates.includes(dateStr)) {
+        status = 'relapse';
+      } else {
+        // Verificar si es un día exitoso (sin porno)
+        const successDaysDates = successDays.map(date => {
+          const successDate = new Date(date);
+          successDate.setHours(0, 0, 0, 0);
+          return successDate.toDateString();
+        });
+        
+        if (successDaysDates.includes(dateStr)) {
+          status = 'success';
+        }
+      }
+      
+      calendarData.push({ 
+        day, 
+        date: currentDate,
+        status,
+        isToday: currentDate.toDateString() === today.toDateString()
+      });
+    }
+    
+    return calendarData;
+  };
+  
+  // Función para obtener el nombre del mes
+  const getMonthName = (date) => {
+    const months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    return months[date.getMonth()];
+  };
+  
+  // Días de la semana
+  const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  
   // Depurar estado actual
   console.log("Estado actual:", {
     streak,
     startDate: startDate ? startDate.toString() : null,
     level: level.name,
     relapseHistory: relapseHistory.length,
-    maxStreak
+    maxStreak,
+    successDays: successDays.length
   });
   
   return (
@@ -281,6 +416,13 @@ function App() {
                 Historial
               </button>
               <button 
+                onClick={() => setShowStreakCalendar(true)}
+                className="button button-green"
+              >
+                <span className="button-icon">📊</span>
+                Calendario
+              </button>
+              <button 
                 onClick={registerRelapse}
                 className="button button-red"
               >
@@ -314,7 +456,7 @@ function App() {
         </div>
       </div>
       
-      {/* Modal para el calendario */}
+      {/* Modal para el historial de recaídas */}
       {showCalendar && (
         <div className="modal-overlay">
           <div className="modal">
@@ -357,6 +499,76 @@ function App() {
               
               <button 
                 onClick={() => setShowCalendar(false)}
+                className="button button-blue"
+                style={{ width: '100%', marginTop: '24px' }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal para el calendario de rachas */}
+      {showStreakCalendar && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3 className="modal-title">Calendario de Rachas</h3>
+                <button 
+                  onClick={() => setShowStreakCalendar(false)}
+                  className="close-button"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="calendar-container">
+                <div className="calendar-month">
+                  <h4>{getMonthName(new Date())} {new Date().getFullYear()}</h4>
+                </div>
+                
+                <div className="calendar-weekdays">
+                  {weekDays.map(day => (
+                    <div key={day} className="calendar-weekday">{day}</div>
+                  ))}
+                </div>
+                
+                <div className="calendar-grid">
+                  {generateCalendarData().map((day, index) => (
+                    <div 
+                      key={index} 
+                      className={`calendar-day ${day.isToday ? 'today' : ''}`}
+                    >
+                      {day.day && (
+                        <>
+                          <span className="day-number">{day.day}</span>
+                          {day.status && (
+                            <span className={`day-status ${day.status}`}>
+                              {day.status === 'success' ? '●' : '●'}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="calendar-legend">
+                  <div className="legend-item">
+                    <span className="legend-dot success">●</span>
+                    <span>Día sin porno</span>
+                  </div>
+                  <div className="legend-item">
+                    <span className="legend-dot relapse">●</span>
+                    <span>Recaída</span>
+                  </div>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setShowStreakCalendar(false)}
                 className="button button-blue"
                 style={{ width: '100%', marginTop: '24px' }}
               >
